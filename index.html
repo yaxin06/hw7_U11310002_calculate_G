@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity Anomaly Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            width: 50%;
+            margin: 0 auto;
+        }
+        label, p {
+            font-size: 1.1em;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin: 10px 0;
+            font-size: 1em;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gravity Anomaly Calculator</h1>
+    <div class="container">
+        <label for="latitude">Latitude (°N):</label>
+        <input type="number" id="latitude" value="48.1195">
+
+        <label for="elevation">Elevation (m):</label>
+        <input type="number" id="elevation" value="487.9">
+
+        <label for="observedGravity">Observed Gravity (mGal):</label>
+        <input type="number" id="observedGravity" value="980717.39">
+
+        <button onclick="calculate()">Calculate</button>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const radiusEarth = 6371000; // Earth radius in meters
+        const densityBouguer = 2670; // Density for Bouguer correction in kg/m^3
+
+        function theoreticalGravity(latitude, elevation) {
+            let latRad = (Math.PI / 180) * latitude;  // Convert latitude to radians
+            let gTheory = 9.780327 * (1 + 0.00193185138639 * Math.sin(latRad) ** 2) /
+                Math.sqrt(1 - 0.00669437999014 * Math.sin(latRad) ** 2);
+            gTheory = gTheory * (1 + (elevation / radiusEarth));  // Elevation correction
+            return gTheory;
+        }
+
+        function freeAirCorrection(elevation) {
+            return 0.3086 * elevation;  // Free-air correction in mGal
+        }
+
+        function bouguerCorrection(elevation) {
+            return 0.0419 * elevation * densityBouguer;  // Bouguer correction in mGal
+        }
+
+        function gravityAnomaly(observedGravity, theoreticalGravity, freeAirCorr, bouguerCorr) {
+            return observedGravity - (theoreticalGravity + freeAirCorr + bouguerCorr);
+        }
+
+        function calculate() {
+            // Get input values
+            const latitude = parseFloat(document.getElementById("latitude").value);
+            const elevation = parseFloat(document.getElementById("elevation").value);
+            const observedGravity = parseFloat(document.getElementById("observedGravity").value);
+
+            // Perform calculations
+            const theoGravity = theoreticalGravity(latitude, elevation);
+            const freeAirCorr = freeAirCorrection(elevation);
+            const bouguerCorr = bouguerCorrection(elevation);
+            const bouguerGravityAnomaly = gravityAnomaly(observedGravity, theoGravity, freeAirCorr, bouguerCorr);
+
+            // Ocean scenario (same latitude, longitude, but over ocean)
+            const waterDepth = elevation;  // Assuming the water depth is the same as the elevation
+            const freeAirCorrOcean = freeAirCorrection(waterDepth);
+            const bouguerCorrOcean = bouguerCorrection(waterDepth);
+            const bouguerGravityAnomalyOcean = gravityAnomaly(observedGravity, theoGravity, freeAirCorrOcean, bouguerCorrOcean);
+
+            // Display results
+            const results = `
+                <p><strong>Theoretical Gravity:</strong> ${theoGravity.toFixed(6)} m/s²</p>
+                <p><strong>Free Air Correction:</strong> ${freeAirCorr.toFixed(2)} mGal</p>
+                <p><strong>Bouguer Correction:</strong> ${bouguerCorr.toFixed(2)} mGal</p>
+                <p><strong>Gravity Anomaly (Bouguer):</strong> ${bouguerGravityAnomaly.toFixed(2)} mGal</p>
+                <hr>
+                <p><strong>Free Air Correction (Ocean):</strong> ${freeAirCorrOcean.toFixed(2)} mGal</p>
+                <p><strong>Bouguer Correction (Ocean):</strong> ${bouguerCorrOcean.toFixed(2)} mGal</p>
+                <p><strong>Gravity Anomaly (Bouguer, Ocean):</strong> ${bouguerGravityAnomalyOcean.toFixed(2)} mGal</p>
+            `;
+
+            document.getElementById("results").innerHTML = results;
+        }
+    </script>
+</body>
+</html>
